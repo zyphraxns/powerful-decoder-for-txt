@@ -1,0 +1,2 @@
+charset-normalizer>=3.0
+chardet>=5.0
