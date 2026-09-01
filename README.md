@@ -1,69 +1,101 @@
-# Powerful TXT decoder
+# Powerful TXT Decoder
 
-This is a small tool for repairing and decoding potentially garbled TXT novel files downloaded from the Internet.
+> A small Python CLI tool that automatically detects the encoding of garbled TXT files (e.g. novels downloaded from the Internet) and repairs common mojibake.
 
-Features:
-- Automatically detect file encoding (using `charset-normalizer` or `chardet`)
-- Try to fix common mojibake (garbled characters caused by double encoding)
-- Output as UTF-8 encoded text file
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
+[![GitHub](https://img.shields.io/badge/GitHub-PowerfulDecoderForTxt-181717.svg?logo=github)](https://github.com/zyphraxns/PowerfulDecoderForTxt)
 
-Usage example:
+**English** | [中文说明](README_zh.md)
+
+## Introduction
+
+Have you ever downloaded a TXT novel from the Internet only to find it full of garbled characters (`锟斤拷`、`����`、`Ã©`…)? That is usually caused by a wrong encoding interpretation or by a file that was double-encoded.
+
+Powerful TXT Decoder fixes this: it reads the raw bytes, detects the most likely encoding (using `charset-normalizer`, falling back to `chardet`), and when a single decoding pass looks poor, it attempts common double-decode repairs (such as Latin-1 → UTF-8) to recover the original text. The result is always written as a clean UTF-8 file that opens correctly in any modern editor.
+
+## Features
+
+- **Automatic encoding detection** — prefers `charset-normalizer`, falls back to `chardet`
+- **BOM detection** — handles UTF-8 / UTF-16 / UTF-32 BOM markers automatically
+- **Mojibake repair** — tries common double-decode patterns (e.g. Latin-1 → UTF-8) when a single decode looks bad
+- **Smart scoring** — picks the best result using CJK character ratio, printable-character ratio, Chinese punctuation, and replacement-character penalty
+- **Wide encoding coverage** — supports UTF-8, GB18030/GBK/GB2312, Big5, Shift-JIS, EUC-KR, Latin-1, CP1252 and more
+- **UTF-8 output** — every written file is UTF-8 encoded
+
+## Installation
+
+### Prerequisites
+
+- Python 3.8 or newer
+
+### Steps
 
 ```bash
+# Clone the repository
+git clone https://github.com/zyphraxns/PowerfulDecoderForTxt.git
+cd PowerfulDecoderForTxt
+
 # Install dependencies
 pip install -r requirements.txt
+```
 
-# Decode and write a new file (default appends _decoded.txt)
+## Quick Start
+
+```bash
+# Decode a file (default output appends _decoded.txt)
 python3 txt_decoder.py book.txt
 
-# Specify output and overwrite if exists
-python3 txt_decoder.py book.txt -o book_fixed.txt --overwrite
+# Specify output path and overwrite if it exists
+python3 txt_decoder.py book.txt -o fixed_book.txt --overwrite
 
-# Only show detected encoding and score
+# Only print the detected encoding and score (no file is written)
 python3 txt_decoder.py book.txt --show-encoding
 ```
 
-Implementation (brief):
-- First check BOM (UTF-8/16/32)
-- Use `charset-normalizer` (preferred) or `chardet` to detect encoding
-- Try decoding among candidate encodings and pick the best one based on a simple scoring function (CJK ratio, printable character ratio, number of replacement characters)
-- When single decoding yields poor results, try common double-decode repairs (like Latin1 -> UTF-8) to recover text
+Example output:
 
-If you want this packaged as an installable CLI, batch directory processing, or a GUI, tell me which option you prefer.
+```
+$ python3 txt_decoder.py book.txt --show-encoding
+detected_encoding: gb18030, score: 0.9765
 
-**Quick Start**
+$ python3 txt_decoder.py book.txt
+Written: book_decoded.txt  (detected encoding: gb18030, score: 0.9765)
+```
 
-- **Prerequisite**: Install Python 3 (3.8+ recommended) and dependencies:
+## Command Line Options
 
-  ```bash
-  pip install -r requirements.txt
-  ```
+| Option | Description |
+|--------|-------------|
+| `input` | Path to the TXT file to decode (required) |
+| `-o, --output` | Output file path. Defaults to `<input>_decoded.txt` |
+| `--overwrite` | Overwrite the output file if it already exists |
+| `--show-encoding` | Only print the detected encoding and score, without writing a file |
 
-- **Single file decoding (default output UTF-8, new file name adds `_decoded.txt`)**:
+Exit codes:
 
-  ```bash
-  python3 txt_decoder.py book.txt
-  ```
+- `0` — success
+- `2` — input file not found
+- `3` — output file already exists (use `--overwrite` to replace it)
 
-- **Specify output and overwrite existing files**:
+## How It Works
 
-  ```bash
-  python3 txt_decoder.py book.txt -o fixed_book.txt --overwrite
-  ```
+1. Check for a BOM (UTF-8 / UTF-16 / UTF-32) and decode directly if found.
+2. Detect the encoding with `charset-normalizer` (or `chardet` as fallback).
+3. Try decoding the bytes with each candidate encoding and score the result.
+4. If a single pass yields poor results, try double-decode repairs (e.g. Latin-1 → UTF-8 → GB18030) and keep the best-scoring text.
+5. Write the winning text as a UTF-8 file.
 
-- **Only display detected encoding and score (do not write file)**:
+## Documentation
 
-  ```bash
-  python3 txt_decoder.py book.txt --show-encoding
-  ```
+- [中文说明](README_zh.md) — 中文版说明
+- [Contributing Guide](CONTRIBUTING.md) — how to report issues and submit code
+- [Changelog](CHANGELOG.md) — release history
 
-- **Batch process all `.txt` in a directory (example: output to `decoded/`)**:
+## Contributing
 
-  ```bash
-  mkdir -p decoded
-  for f in *.txt; do
-    python3 txt_decoder.py "$f" -o "decoded/${f%.txt}_decoded.txt" --overwrite
-  done
-  ```
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request.
 
-- **Output**: All written files are UTF-8 encoded for easy opening in modern editors.
+## License
+
+This project is licensed under the [MIT License](LICENSE).
